@@ -1,0 +1,232 @@
+http://tscolari.github.com/mobylette/mobylette_images/mobylette.jpg
+
+  Mobylette 2.0+ deprecated the respond_to_mobile_requests method.
+  Now you must use `include Mobylette::RespondToMobileRequests` instead.
+  to configure it, see the configuration.
+  Also stylesheet and javascript helpers were removed.
+
+  Mobylette 1.6+ only supports Ruby 1.9.2+
+  For Ruby 1.8.7 support, please use version < 1.6
+
+= Mobylette
+{<img src="https://secure.travis-ci.org/tscolari/mobylette.png" />}[http://travis-ci.org/tscolari/mobylette]
+{<img src="https://gemnasium.com/tscolari/mobylette.png" />}[https://gemnasium.com/tscolari/mobylette]
+{<img src="https://codeclimate.com/github/tscolari/mobylette.png" />}[https://codeclimate.com/github/tscolari/mobylette]
+
+
+This gem works by adding the 'mobile' format to your rails application. Whenever a request come from a mobile device, if you have your controller mobile enabled, it shall render the view.mobile.erb instead of the view.html.erb (or haml, or whatever).
+
+== How does it work?
+
+By adding "respond_to_mobile_requests" in your application_controller (or any other controller), your controllers (or that controller) will understand mobile requests as a new mime type alias "mobile". This will make the controller to search for the .mobile.erb file instead of the .html.erb. Also you will be able to do:
+
+    respond_to do |format|
+      format.html   { ... }
+      format.mobile { ... }
+    end
+
+== Installation
+
+Add the gem to your gemfile:
+
+    gem 'mobylette'
+
+And add to your ApplicationController.rb (for enabling it to all your controllers) or to the controllers you want this functionality on:
+
+    include Mobylette::RespondToMobileRequests
+
+After that, you may start adding your .mobile. views.
+
+== Helpers
+
+* ==== is_mobile_request?
+
+  This helper returns true if the request comes from a mobile device, false if it does not.
+
+* ==== is_mobile_view?
+
+  Returns if the current format is :mobile or not.
+
+* ==== request_device?
+
+  Returns true/false if the current request comes from the device passed as parameter.
+
+  Examples:
+    request_device?(:iphone)
+
+    request_device?(:android)
+
+  Only :iphone, :ipad, :ios and :android are recognized by default. But you can add other devices, check configuration.
+
+== Configuration
+
+You can set the configuration with the mobylette_config method:
+
+    mobylette_config do |config|
+      ... configuration
+    end
+
+=== Custom User Agents
+
+Mobylette works upon detecting the user agent of the visitor browser. By default it will detect any mobile user agent. But you can customize this by passing a proc with a regex of any matching user agent you may wish.
+
+  mobylette_config do |config|
+    config[:mobile_user_agents] = proc { %r{iphone|ipad}i }
+  end
+
+=== Skipping User Agents
+
+If you need to exclude one or more user agents from the mobile format, lets say ipad for example, you may use the :skip_user_agents option:
+
+  mobylette_config do |config|
+    config[:skip_user_agents] = [:ipad]
+  end
+
+=== Fall Backs
+
+Fall backs are handled as a chain of formats. By default the only chain is `:mobile => [:mobile, :html]`.
+You can override this and add your own fall back chains using the `mobylette_config`.
+
+  mobylette_config do |config|
+    config[:fallback_chains] = {
+      mobile: [:mobile, :html],
+      iphone: [:iphone, :mobile, :html],
+      ...
+    }
+  end
+
+When you create a custom format with fall back chains, `:iphone` for example, you must register it as a Mime::Type:
+
+  # config/initializers/mime_types.rb
+  Mime::Type.register_alias 'text/html', :iphone
+  # this is very important, don't forget!
+  # :mobile is already registered!
+
+If you don't want any fall backs, just set it to:
+
+  mobylette_config do |config|
+    config[:fallback_chains] = { mobile: [:mobile] }
+  end
+
+
+=== XHR Requests
+
+By default the mobile device verification will skip XHR requests, and these will be served as if mobylette wasn't there. You can override this behavior by setting the :skip_xhr_requests option to false on your controller:
+
+    mobylette_config do |config|
+      config[:skip_xhr_requests] = false
+    end
+
+You may need to use this if you are using JQuery mobile or something similar in your application.
+
+=== Registering Mobile Devices
+
+Mobylette 3.0+ has a `request_device?` helper. By default only :iphone, :ipad, :ios and :android devices come registered.
+But you can register any device using the `mobylette_config` method:
+
+  mobylette_config do |config|
+    config[:devices] = { my_unique_phone: %r{UniquePhone 1.2.3}, ... }
+  end
+
+Note: This will not add the device to the mobile user_agent detection. For that read #Custom User Agents.
+
+== Skipping mobile filter
+
+In the case you need to skip a mobile_request for been treated as mobile, you can pass the `skip_mobile=true` param to the url/request.
+
+For example, you are using jquery_mobile and by that `:skip_xhr_requests = false`, but there is a special case where you need to process an Ajax, then you can use this param.
+
+== Forcing/Ignoring Mobile Requests
+
+You may force your user to aways render the mobile format, or to aways render the default request format (when the request comes from a mobile device). You can use the session var :mobylette_override for doing it:
+
+    session[:mobylette_override] = :ignore_mobile
+
+This will skip the code that would force the mobile format. By doing this, your user will aways render the 'original' version of your app.
+
+    session[:mobylette_override] = :force_mobile
+
+This will force the mobile format rendering, no matter from where the user is requesting it (unless it's a xhr request).
+
+    session[:mobylette_override] = nil
+
+=== Notice: 
+Be sure you are forcing / skiping mobile requests e.g. in a before_filter like : skip_or_force_mobile BEFORE you are including the Mobylette::RespondToMobileRequests module. 
+Mobylette adds own before_filter to check the session var which would be executed before your filter. 
+
+  class ApplicationController < ActionController::Base 
+    #...
+    
+    before_filter :skip_or_force_mobile
+    
+    include Mobylette::RespondToMobileRequests
+    
+    mobylette_config do |config|
+      config[:mobile_user_agents] = proc { %r{iphone|android}i }
+      config[:skip_user_agents]   = []
+    end
+    
+    # ...
+    private 
+    
+    def skip_or_force_mobile
+      session[:mobylette_override] = :ignore_mobile if params[:skip_mobile]
+      session[:mobylette_override] = :force_mobile if params[:force_mobile]
+    end
+  end
+
+This will disable any override (default).
+
+If you need to customize how mobile requests are identified you can override the `is_mobile_request?` method in your controller, with your own logic.
+For example, if you want the mobile.app.com to render mobile views, and the app.com to render the normal views:
+
+  class ApplicationController << ActionController::Base
+    include Mobylette::RespondToMobileRequests
+
+    ...
+
+    private
+
+    def is_mobile_request?
+      request.host == "mobile.app.com"
+    end
+  end
+
+== Testing
+
+http://tscolari.github.com/mobylette/mobylette_images/helmet.jpg
+
+Don't drive your mobylette without your Helmet! It's safer to do tests!
+
+For testing, include the Mobylette::Helmet module to your test/test_helpers.rb:
+
+    require 'mobylette/helmet'
+    include Mobylette::Helmet
+
+For RSpec: add to your spec/spec_helpers.rb or create a spec/support/mobylette.rb with the following:
+
+    require 'mobylette/helmet'
+    RSpec.configure do |config|
+      config.include Mobylette::Helmet, :type => :controller
+    end
+
+This will add 3 methods to your test scope:
+
+    force_mobile_request_agent(agent = 'Android')
+
+This will force a mobile user_agent, allowing you to test mobile requests.
+
+    reset_test_request_agent
+
+This will reset your user_agent to the test default "Rails Testing". You don't need to call this every time, all your requests by default are "Rails Testing" in your test env.
+
+    set_session_override(override_value)
+
+This will force the session_override value in the users session. Values possible values are:  :ignore_mobile and :force_mobile
+
+Friendly note: on your tests, call these functions BEFORE you make the request, otherwise they are useless =p
+
+
+= License
+
+MIT License. Copyright 2012 Tiago Scolari.

@@ -1,0 +1,109 @@
+= Change Log
+
+== 3.5
+	* Support for rails 4
+
+== 3.4.1
+	* Reverting changes of the 3.4.1
+
+== 3.4.0
+	* Moving all methods to be private
+
+== 3.3.2
+  * Removing debugger from Gemfile
+  * Adding support to PlayBook as a mobile user agent
+
+== 3.3.1
+	* Fix to keep the `is_mobile_request?` output if :skip_user_agents is
+	used.
+
+== 3.3
+	* New `:skip_user_agents` option to exclude user agents from mobile
+	requests.
+
+== 3.2
+	* Fixed fallback for templates inside gems
+
+== 3.1
+	* Fixed regression with windows user agent
+
+== 3.0
+	* New MobileUserAgents class
+		The constant user agents list is now a class that can be replaced.
+	* New device definition.
+		Application can define devices, by user agent regex, to check a matching
+		request.
+	* Brand new fallback resolver, with fallback chains by format.
+		It's possible to define different fallbacks per format, and devices.
+
+== 2.3
+	* Added support to kindle (thanks to @zbelzer, https://github.com/zbelzer)
+
+== 2.2
+  * Fixed fallbacks
+    * Fallbacks now have the default value to :html
+    * You can disable fall backs by passing config[:fall_back] = false in the
+    controller configuration.
+  * Moved the mobile user agents definitions to another module that doesn't
+  get inserted to the controllers.
+
+== 2.1
+  * Adding new user_agents: ipad, maemo and fennec
+
+== 2.0
+  * New configuration
+    * respond_to_mobile_requests is deprecated
+    * use `include Mobylette::RespondToMobileRequests` instead
+    * to configure it, use the mobylette_config method. see readme
+  * stylesheet and javascript helpers were removed
+  * all specs refactored
+
+== 1.6
+  * Support for ruby 1.9 only
+
+== 1.5
+  * Removed rails dependency. Now mobylette depends on actionpack only.
+  * All calls for autoload were removed, as it is deprecated now.
+
+== 1.4.2
+  * Creating a initializer to alias to_mobile => to_html (responders)
+
+== 1.4.1
+  * Creating a skip_mobile=true url param that skips any mobile request from been treated as mobile
+
+== 1.4.0
+  * The mobile_view path (v 1.3.0) was a terrible idea and I removed it. I'm sorry.
+  * Internal refactoring.
+
+== 1.3.0
+  * Adding a new view path for mobile views at app/mobile_views. This new behavior is optional and should not change any old behavior.
+
+== 1.2.2
+  * Gem dependency changed from rails 3.1 to 3.0. Contribution from billywatson (https://github.com/tscolari/mobylette/pull/1).
+
+== 1.2.1
+  * Internal methods refactoring
+  * Adding more documentation
+
+== 1.2.0
+  * Created a new option (:skip_xhr_request) for the respond_to_mobile_requests method. Default is true.
+
+== 1.1.0
+  * XHR requests no longer trigger the mobile format
+  * Added a new method 'is_mobile_view?'
+    * The 'is_mobile_device?' now checks only for the user agent, no longer check for the request.format to return true/false
+    * The new 'is_mobile_view?' checks only for the reqeust.format / params[:format] to return true/false
+
+== 1.0.0
+  * Added fall back from mobile views to others when there is no mobile view avaible
+
+== 0.0.2
+  * Fixing the view helpers (stylesheet and javascript includes)
+  * Added tests to those helpers
+  * Added a few more methods and modules documentation
+
+== 0.0.1
+
+  * Gem creation
+    * respond_to_mobile_requests
+    * Test Helpers (Helmet)
